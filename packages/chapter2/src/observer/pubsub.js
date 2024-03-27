@@ -1,30 +1,29 @@
-const state = {};
-let subscribers = [];
+let currentCallback = null;
+let callbackStack = {};
 
 export const 구독 = (fn) => {
-  subscribers.push(fn.bind(state));
+  currentCallback = fn;
   fn();
 };
 
 export const 발행기관 = (obj) => {
-  for (let [key, value] of Object.entries(obj)) {
-    // console.log(key, value);
+  const state = {};
+  for (const key of Object.keys(obj)) {
     Object.defineProperty(state, key, {
       get() {
-        return value;
+        callbackStack[key] = callbackStack[key] || new Set();
+        callbackStack[key].add(currentCallback);
+
+        return obj[key];
       },
       set(newVal) {
-        value = newVal;
-        subscribers.forEach((subscriber) => subscriber());
+        obj[key] = newVal;
+        console.log(callbackStack[key]);
+        callbackStack[key].forEach((cb) => {
+          cb();
+        });
       },
-      configurable: true,
     });
   }
   return state;
 };
-
-const test = 발행기관({ a: 10, b: 1000 });
-console.log(test.a);
-console.log(test.b);
-test.a = 99;
-console.log(test.a);
